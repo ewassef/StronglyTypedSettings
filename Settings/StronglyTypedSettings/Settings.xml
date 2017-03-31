@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Settings>
+  <Entry name="Global.Login.Username" description="Defines the global username for determining how to get in" type="string">eddie</Entry>
+  <Entry name="Global.Login.Password" description="Defines the global password for determining how to get in" type="string">eddie</Entry>
+  <Entry name="Global.Login.Domain" description="Defines the global Domain for determining how to get in" type="string">eddie</Entry>
+  <Entry name="Global.Login.Retries" description="Defines the global number of allowed retries" type="int">3</Entry>
+  <Entry name="Global.Login.FallBack" description="Defines the global username for determining how to get in" type="string">eddie</Entry>
+  <Entry name="Global.ShouldSave" description="Defines whether to save or not" type="bool">true</Entry>
+</Settings>

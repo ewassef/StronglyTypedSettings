@@ -1,0 +1,303 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ assembly name="System" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Data.DataSetExtensions" #>
+<#@ assembly name="System.Data" #>
+<#@ assembly name="System.Xml" #>
+<#@ assembly name="System.Xml.Linq" #>
+<#@ assembly name="Microsoft.CSharp" #>
+<#@ assembly name="System.Configuration" #>
+<#@ import namespace="System.Configuration" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Xml.Linq" #>
+<#@ import namespace=" System.Collections.Generic" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Xml" #>
+<#@ include file="ConfigurationAccessor.tt" #>
+<#  
+    WriteLine("using System;");
+    WriteLine("using System.Linq;");
+    WriteLine("using System.Reflection;");
+    WriteLine("");
+    WriteLine("//-----------------------------------------------------------");
+    WriteLine("// Do not modified this file. This content is auto generated.");
+    WriteLine("// Modify the T4 template instead.");
+    WriteLine("//-----------------------------------------------------------");
+    WriteLine("namespace {0} {{", System.Runtime.Remoting.Messaging.CallContext.LogicalGetData("NamespaceHint"));
+
+    var baseConfigName = "ContextConfigBase";
+    WriteLine("\tpublic sealed class Configs { "); // Context Property extensions   
+    
+    //Constructor
+    WriteLine("private static Func<string,string> _lookupFunc;");    
+    WriteLine("private static Action<string,string> _writebackAction;");
+    WriteLine(" public static Func<string, string> Lookup");
+    WriteLine("    {"); 
+    WriteLine("        set { _lookupFunc = value; }");
+    WriteLine("    }");
+	WriteLine("");
+    WriteLine("    public static Action<string, string> WriteBack");
+     WriteLine("   {");
+     WriteLine("       set { _writebackAction = value; }");
+    WriteLine("    } ");
+    //End of contructor   
+	 
+
+    var t4TempClass = GetT4Graph();
+     
+    // generate properties first
+    foreach(var prop in t4TempClass.Properties)
+    {   
+	    WriteLine("/// <summary>");
+        WriteLine("/// {0}",prop.Description);
+        WriteLine("/// </summary>");
+        WriteLine("\t\tpublic {0} {1} {2}", prop.Type, prop.Name, "{ get {");
+		WriteLine(" if (_lookupFunc == null) throw new InvalidOperationException(\"You must set the lookup func before using this class\");");
+        if(prop.Type.ToLower() != "string")
+            WriteLine("return {0}.Parse(_lookupFunc(\"{1}\"));", prop.Type, prop.FullName);
+        else
+            WriteLine("return _lookupFunc(\"{0}\");", prop.FullName);
+        WriteLine("}");
+		WriteLine("\t\tset{{_writebackAction(\"{0}\",value.ToString());",prop.FullName);
+        
+		WriteLine("}");
+		WriteLine("}");
+    }
+    foreach(var className in t4TempClass.SubClasses)
+    {   
+        WriteLine("\t\tpublic {0}Context {1} = new {0}Context();", className.Key , className.Key);
+    }
+    foreach(var t4Class in t4TempClass.SubClasses)
+    {   
+         WriteT4ClassGraph(t4Class.Value); 
+    }
+
+    WriteLine("\t}"); //End Context Property extension
+
+    // End of Namespace
+    WriteLine("}");
+#>
+<#+
+    public void WriteT4ClassGraph(T4TempClass t4TempClass)
+    {
+        WriteLine("\tpublic class {0} {1} ", t4TempClass.Name, "{"); // Class begins       
+    
+        // generate properties first 
+        foreach(var prop in t4TempClass.Properties)
+        {   
+		WriteLine("/// <summary>");
+        WriteLine("/// {0}",prop.Description);
+        WriteLine("/// </summary>");
+            WriteLine("\t\tpublic {0} {1} {2}", prop.Type, prop.Name, "{ get {");
+			WriteLine(" if (_lookupFunc == null) throw new InvalidOperationException(\"You must set the lookup func before using this class\");");
+            if(prop.Type.ToLower() != "string")
+                WriteLine("return {0}.Parse(_lookupFunc(\"{1}\"));", prop.Type, prop.FullName);
+            else
+                WriteLine("return _lookupFunc(\"{0}\");", prop.FullName);
+            WriteLine("}");
+			WriteLine("\t\tset{{\t_writebackAction(\"{0}\",value.ToString());",prop.FullName);
+        WriteLine("}");
+            WriteLine("}");
+        }
+        foreach(var className in t4TempClass.SubClasses)
+        {   
+            WriteLine("\t\tpublic {0}Context {1} = new {0}Context();", className.Key , className.Key);
+        }
+        foreach(var t4Class in t4TempClass.SubClasses)
+        {   
+            WriteT4ClassGraph(t4Class.Value);
+        } 
+        WriteLine("\t}"); //End class
+    }
+
+    public T4TempClass GetT4Graph()
+    {
+        var contextProperties = GetContextValues();       
+        return GenerateContextPropertyT4Class(contextProperties);
+    }
+
+    private T4TempClass GenerateContextPropertyT4Class(IEnumerable<Tuple<string, string,string>> contextProperties)
+    {
+        var cpNode = new T4TempClass { Name = "ContextProperty" };
+        foreach (var contextProperty in contextProperties)
+        {
+            var nameArray = contextProperty.Item1.Split('.').ToList(); 
+            if (nameArray.Count == 1)
+            {
+               // We need to check and correct invalid property names
+                var number = 0;
+                var propertyName = FirstLetterToUpper(nameArray[0]);
+
+                var isNumber = int.TryParse(propertyName, out number);
+            
+                if(isNumber)
+                    propertyName = FirstLetterToUpper(contextProperty.Item1.Replace(".",""));
+
+                var property = new T4TempClass.Property
+                    {
+                        Name = propertyName,
+                        FullName = contextProperty.Item1,
+                        Type = GetType(contextProperty.Item2),
+						Description = contextProperty.Item3
+                    };
+                cpNode.Properties.Add(property);
+                continue;
+            }
+
+            var className = FirstLetterToUpper(nameArray[0]);
+            nameArray.RemoveAt(0);
+            if (!cpNode.SubClasses.ContainsKey(className))
+            {
+                var t4TempClass = ProcessT4(new T4TempClass { Name = className }, nameArray, contextProperty.Item1, contextProperty.Item2, contextProperty.Item3);
+                cpNode.SubClasses.Add(className, t4TempClass);
+            }
+            else
+            {
+                var t4SubClass = cpNode.SubClasses[className];
+                cpNode.SubClasses[className] = ProcessT4(t4SubClass, nameArray, contextProperty.Item1, contextProperty.Item2, contextProperty.Item3);
+            }
+        }
+        return cpNode;
+    }
+
+
+    private T4TempClass ProcessT4(T4TempClass t4ParentClass, IList<string> nameArray, string key, string value,string description)
+    {
+        if (nameArray.Count == 1)
+        {
+            // We need to check and correct invalid property names
+            var number = 0;
+            var propertyName = FirstLetterToUpper(nameArray[0]);
+
+            var isNumber = int.TryParse(propertyName, out number);
+            
+            if(isNumber)
+                propertyName = FirstLetterToUpper(key.Replace(".",""));
+
+            var property = new T4TempClass.Property
+                {
+                    Name = propertyName,
+                    FullName = key,
+                    Type = GetType(value),
+					Description = description
+                };
+            t4ParentClass.Properties.Add(property);
+            return t4ParentClass;
+        }
+
+        var className = FirstLetterToUpper(nameArray[0]);
+        nameArray.RemoveAt(0);
+
+        if (!t4ParentClass.SubClasses.ContainsKey(className))
+        {
+            var t4TempClass = ProcessT4(new T4TempClass { Name = className }, nameArray, key, value,description);
+            t4ParentClass.SubClasses.Add(className, t4TempClass);
+        }
+        else
+        {
+            var t4SubClass = t4ParentClass.SubClasses[className];
+            t4SubClass = ProcessT4(t4SubClass, nameArray, key, value,description);
+            t4ParentClass.SubClasses[className] = t4SubClass;
+        }
+        return t4ParentClass;
+    }
+
+    private List<Tuple<string,string,string>> GetContextValues() {
+
+		var settings = GetRawSettings();
+         var results = new List<Tuple<string,string,string>>();
+
+        try{
+            results = settings.Elements("Entry").Select(x=>new Tuple<string,string,string>(x.Attribute("name").Value,x.Attribute("type").Value,x.Attribute("description").Value)).ToList();
+        }catch{
+            Error("Unable to get context settings from the database server.");
+        }
+        return results;
+    }
+
+	public System.Xml.Linq.XElement GetRawSettings(){
+		var config = new ConfigurationAccessor((IServiceProvider)this.Host);
+		return config.Settings;
+	}
+
+    private string GetConnectionString() 
+    { 
+        var connectionString = string.Empty;        
+        var config = new ConfigurationAccessor((IServiceProvider)this.Host);
+        connectionString = config.AppSettings["SettingsConnection"].Value;
+        return connectionString;
+    } 
+
+   
+
+    public string GetType(string typeName) {
+        if(string.IsNullOrEmpty(typeName))
+            typeName = "string";
+        else if (typeName.ToLower() == "integer" || typeName.ToLower() == "int")
+            typeName = "Int32";       
+		var types = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(x => x.GetTypes())
+                .Distinct()
+                .Where(x => 
+					x.GetMethods().Any(m=>
+						m.Name=="Parse" && 
+						m.GetParameters().Count()==1 && 
+						m.GetParameters()[0].ParameterType==typeof(string)))
+                .Select(x => x.Name)
+                .ToList();
+
+        var typeFound = types.FirstOrDefault(t => t.ToLower() == typeName.ToLower());
+
+
+        if(typeFound == null)
+            return "string";
+
+       return typeFound;
+    }
+
+    public string CleanUp(string[] inputArray) {
+        if (inputArray == null) throw new ArgumentNullException("inputArray");
+        // let strip of the first vakue in the array
+        var returnString = string.Empty;
+        for (var i = 1; i < inputArray.Length; i++) {
+            returnString += FirstLetterToUpper(inputArray[i]);
+        } 
+        return returnString;
+    }
+
+    public string FirstLetterToUpper(string value) {        
+        if (string.IsNullOrEmpty(value)) {
+            return string.Empty;
+        }
+        var valueArray = value.Trim().ToCharArray();
+        valueArray[0] = char.ToUpper(valueArray[0]);
+        return new string(valueArray);
+    }   
+
+    public class T4TempClass
+    {
+        private string _name;
+        public string Name { 
+            get { return _name; }
+            set { _name = value + "Context"; }   
+        }
+        public IList<Property> Properties { get; set; }
+        public IDictionary<string, T4TempClass> SubClasses { get; set; }
+
+        public T4TempClass()
+        {
+            Properties = new List<Property>();
+            SubClasses = new Dictionary<string, T4TempClass>();
+        }
+
+        public class Property 
+        {
+            public string Type { get; set; }
+            public string Name { get; set; }
+            public string FullName { get; set; }
+			public string Description{get;set;}
+        }
+    }
+ #>
