@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Settings>
+  <Entry name="Global.Login.Username" description="Defines the global username for determining how to get in" type="string">uSerName</Entry>
+  <Entry name="Global.Login.Password" description="Defines the global password for determining how to get in" type="string">P@$$w0rD</Entry>
+  <Entry name="SomeThingElse.SecondLevel.Domain" description="Defines the global Domain for determining how to get in" type="string">http://www.tempuri.org</Entry>
+  <Entry name="SomeThingElse.FirstLevel.Retries" description="Demonstrates a first level under global" type="int">3</Entry>
+  <Entry name="SomeThingElse.SecondLevel.FallBack" description="Demonstrates two levels of nesting" type="string">https://tempuri.org</Entry>
+  <Entry name="Global.ShouldSave" description="Demonstrates a single level of nesting" type="bool">true</Entry>
+</Settings>

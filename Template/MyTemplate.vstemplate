@@ -1,0 +1,47 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+  <TemplateData>
+    <DefaultName>StronglyTypedSettings.tt</DefaultName>
+    <Name>StronglyTypedSettings</Name>
+    <Description>This xml file will be parsed using a T4 template and will all you to access the settings file via strongly typed class that will recursively follow your dot notated settings names</Description>
+    <ProjectType>CSharp</ProjectType>
+    <SortOrder>10</SortOrder>
+    <Icon>__TemplateIcon.ico</Icon>
+  </TemplateData>
+  <TemplateContent>
+    <References>
+      <Reference>
+        <Assembly>System</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Core</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Xml.Linq</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Data.DataSetExtensions</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>Microsoft.CSharp</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Data</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Net.Http</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Xml</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Configuration</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>mscorlib</Assembly>
+      </Reference>
+    </References>
+    <ProjectItem SubType="" TargetFileName="$fileinputname$.tt" ReplaceParameters="true">ConfigurationContext.tt</ProjectItem>
+    <ProjectItem SubType="" TargetFileName="ConfigurationAccessor.tt" ReplaceParameters="true">ConfigurationAccessor.tt</ProjectItem>
+    <ProjectItem SubType="" TargetFileName="Settings.xml" ReplaceParameters="true">Settings.xml</ProjectItem>
+  </TemplateContent>
+</VSTemplate>
